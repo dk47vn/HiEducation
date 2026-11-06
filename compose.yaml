@@ -1,0 +1,47 @@
+services:
+  app:
+    build: .
+    image: hieducation:local
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?Set ADMIN_TOKEN in a private .env file}
+      COOKIE_SECURE: 'true'
+      PUBLIC_ORIGIN: https://${SITE_DOMAIN:-hi.edu.vn}
+      HI_AI_API_KEY: ${HI_AI_API_KEY:-}
+      HI_AI_TEXT_MODEL: ${HI_AI_TEXT_MODEL:-gpt-4.1-mini}
+      HI_AI_IMAGE_MODEL: ${HI_AI_IMAGE_MODEL:-gpt-image-1}
+      HI_AI_VIDEO_MODEL: ${HI_AI_VIDEO_MODEL:-}
+    volumes:
+      - hi-data:/app/.data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    expose:
+      - '3000'
+  web:
+    image: caddy:2-alpine@sha256:70b3180738b46cd88e49b300d790ae448a0aca3f58edef0f000bb57d619a9ab3
+    restart: unless-stopped
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:-hi.edu.vn}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  hi-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,12 @@
+const {spawn}=require('node:child_process');
+const {mkdtempSync,rmSync}=require('node:fs');
+const {join,resolve}=require('node:path');
+const {tmpdir}=require('node:os');
+const {randomBytes}=require('node:crypto');
+const root=resolve(__dirname,'..'),dir=mkdtempSync(join(tmpdir(),'hi-browser-')),token=randomBytes(32).toString('hex');
+let tester,started=false,ending=false;
+const server=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,NODE_ENV:'test',PORT:'0',DB_PATH:join(dir,'site.sqlite'),MEDIA_DIR:join(dir,'media'),ADMIN_TOKEN:token,COOKIE_SECURE:'false'},stdio:['ignore','pipe','inherit']});
+const finish=code=>{if(ending)return;ending=true;tester?.kill('SIGTERM');server.kill('SIGTERM');const cleanup=()=>{rmSync(dir,{recursive:true,force:true});process.exit(code);};if(server.exitCode!==null)cleanup();else server.once('exit',cleanup);};
+server.stdout.on('data',chunk=>{const match=String(chunk).match(/listening on port (\d+)/);if(started||!match)return;started=true;tester=spawn(process.execPath,['scripts/browser-smoke.cjs'],{cwd:root,env:{...process.env,HI_BROWSER_BASE_URL:'http://127.0.0.1:'+match[1],HI_BROWSER_ADMIN_TOKEN:token},stdio:'inherit'});tester.on('error',error=>{console.error(error.message);finish(1);});tester.on('exit',code=>finish(code??1));});
+server.on('error',error=>{console.error(error.message);finish(1);});server.on('exit',code=>{if(!started&&!ending){console.error('Test server exited before readiness.');finish(code||1);}});
+process.on('SIGINT',()=>finish(130));process.on('SIGTERM',()=>finish(143));

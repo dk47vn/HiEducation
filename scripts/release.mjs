@@ -1,0 +1,10 @@
+import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
+import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+const root=fileURLToPath(new URL('../',import.meta.url));const target=resolve(root,'dist');mkdirSync(target,{recursive:true});
+const name='hi-education-release.tar.gz';
+const files=['package.json','package-lock.json','.nvmrc','.env.example','LICENSE','README.md','DEPLOYMENT.md','server.js','cms.js','blocks.js','seo.js','public','scripts','test','Dockerfile','.dockerignore','compose.yaml','deploy'];
+const result=spawnSync('tar',['-czf',resolve(target,name),...files],{cwd:root,stdio:'inherit'});if(result.status!==0)process.exit(result.status||1);
+const sha=createHash('sha256').update(readFileSync(resolve(target,name))).digest('hex');writeFileSync(resolve(target,name+'.sha256'),sha+'  '+name+'\n');console.log('Created dist/'+name+' and SHA-256 checksum. Source-only: no database, uploads, environment secrets or Git metadata.');

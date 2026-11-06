@@ -1,0 +1,9 @@
+**
+!package.json
+!package-lock.json
+!server.js
+!cms.js
+!blocks.js
+!seo.js
+!public/
+!public/**

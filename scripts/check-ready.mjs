@@ -1,0 +1,2 @@
+const url=process.env.CHECK_URL||'http://127.0.0.1:3000';
+try{for(const [path,check]of [['/api/health',async r=>(await r.json()).status==='ok'],['/api/courses',async r=>Array.isArray(await r.json())],['/gioi-thieu',async r=>(await r.text()).includes('HI Education')]]){const response=await fetch(url+path,{signal:AbortSignal.timeout(5000)});if(!response.ok||!await check(response))throw Error(path+' failed');}console.log('Readiness passed: database, public API and content page.');}catch(error){console.error(error.message);process.exit(1);}
